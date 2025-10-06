@@ -4,11 +4,11 @@ Este proyecto fue hecho para probar cómo guardar y recuperar imágenes directam
 
 ## Grupo de Proyecto
 
-Daniel Ross - 30.142.372
-Sebastián Vera - 30.124
-Samuel Palacios - 29.631.417
-Santiago de Andrade -
-Andrés Valdivieso -
+-Daniel Ross - 30.142.372
+-Sebastián Vera - 30.124.802
+-Samuel Palacios - 29.631.417
+-Santiago de Andrade - 31.065.103
+-Andrés Valdivieso - 31.045.690
 
 
 ## ¿Qué hace este proyecto?
