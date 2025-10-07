@@ -18,13 +18,18 @@ Básicamente armamos un sistema para:
 - Recuperar esas imágenes usando su ID
 - Mantener información importante como el nombre original, tipo MIME y un checksum para verificar la integridad
 
+Este proyecto tiene **dos implementaciones** para realizar las mismas operaciones:
+1. **Implementación en Python** (`photo_demo.py`): Script CLI para insertar y recuperar imágenes desde la terminal
+2. **Implementación en PostgreSQL** (`photo_procedures.sql`): Procedimientos almacenados para hacer las operaciones directamente en la base de datos
+
 ## Estructura del proyecto
 
 ```
 .
-├── create.sql       # Script SQL para crear la tabla y los índices
-├── photo_demo.py    # Script de Python para insertar/recuperar imágenes
-└── .env             # Variables de entorno (no incluido, hay que crearlo)
+├── create.sql            # Script SQL para crear la tabla y los índices
+├── photo_demo.py         # Script de Python para insertar/recuperar imágenes
+├── photo_procedures.sql  # Procedimientos almacenados en PostgreSQL
+└── .env                  # Variables de entorno (no incluido, hay que crearlo)
 ```
 
 ## Configuración de la base de datos
@@ -63,18 +68,20 @@ pip install psycopg2-binary python-dotenv
 
 > **Nota:** Si te da error con `psycopg2`, mejor usa `psycopg2-binary` que ya viene compilado.
 
-## Cómo usar el script
+## Cómo usar el proyecto
+
+### Opción 1: Usando el script de Python
 
 El script `photo_demo.py` tiene dos comandos principales:
 
-### Insertar una imagen
+#### Insertar una imagen
 ```bash
 python3 photo_demo.py insert ruta/a/tu/imagen.jpg
 ```
 
 Esto guarda la imagen en la base de datos y te muestra el ID generado junto con otra info útil.
 
-### Recuperar una imagen
+#### Recuperar una imagen
 ```bash
 python3 photo_demo.py fetch --id <UUID-de-la-imagen>
 ```
@@ -82,6 +89,38 @@ python3 photo_demo.py fetch --id <UUID-de-la-imagen>
 Por defecto guarda el archivo con el nombre original pero con el sufijo `-retrieved`. También puedes especificar dónde guardarlo:
 ```bash
 python3 photo_demo.py fetch --id <UUID> --out mi_imagen_recuperada.jpg
+```
+
+### Opción 2: Usando procedimientos de PostgreSQL
+
+Primero hay que cargar los procedimientos en la base de datos:
+```bash
+psql -U tu_usuario -d nombre_db -f photo_procedures.sql
+```
+
+#### Insertar una imagen desde psql
+```sql
+-- Cargar la imagen en una variable
+\set content `base64 < ruta/a/tu/imagen.jpg`
+
+-- Insertar la imagen
+CALL insert_photo('imagen.jpg', 'image/jpeg', decode(:'content', 'base64'));
+```
+
+#### Recuperar una imagen desde psql
+```sql
+-- Ver información de la imagen
+SELECT * FROM fetch_photo('uuid-de-la-imagen');
+
+-- Guardar la imagen en un archivo
+\o imagen_recuperada.jpg
+SELECT bytes FROM fetch_photo('uuid-de-la-imagen');
+\o
+```
+
+#### Listar todas las imágenes
+```sql
+SELECT * FROM list_photos();
 ```
 
 ## Cómo funciona por dentro
@@ -104,11 +143,22 @@ python3 photo_demo.py fetch --id <UUID> --out mi_imagen_recuperada.jpg
 - Transacciones ACID para las imágenes
 - Backups automáticos con el resto de la base de datos
 - El checksum nos ayuda a verificar que no se corrompa la imagen
+- **Doble implementación**: Flexibilidad para usar Python o PostgreSQL según la necesidad
 
 ### Desventajas
 - Puede hacer que la base de datos crezca mucho
 - No es tan rápido como servir archivos estáticos desde disco
 - Usa más recursos del servidor de base de datos
+
+## Comparación entre implementaciones
+
+| Característica | Python (`photo_demo.py`) | PostgreSQL (`photo_procedures.sql`) |
+|----------------|--------------------------|-------------------------------------|
+| **Facilidad de uso** | Más fácil, CLI amigable | Requiere conocimiento de SQL |
+| **Manejo de archivos** | Automático desde filesystem | Manual con base64 |
+| **Detección MIME** | Automática en Python | Manual al insertar |
+| **Portabilidad** | Requiere Python instalado | Solo necesita acceso a PostgreSQL |
+| **Casos de uso** | Scripts, automatización | Triggers, lógica dentro de la DB |
 
 ## Notas adicionales
 
